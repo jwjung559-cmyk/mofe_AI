@@ -1,0 +1,15 @@
+# Streamlit + Supabase 멀티세션 RAG (multi-session-ref.py)
+streamlit>=1.28.0
+python-dotenv>=1.0.0
+
+# LangChain
+langchain-core>=0.2.0
+langchain-community>=0.2.0
+langchain-openai>=0.1.0
+langchain-text-splitters>=0.2.0
+
+# Supabase (create_client, RPC, 테이블)
+supabase>=2.0.0
+
+# PyPDFLoader → PDF 파싱
+pypdf>=4.0.0
