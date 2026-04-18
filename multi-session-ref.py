@@ -29,9 +29,34 @@ ROOT = Path(__file__).resolve().parents[2]
 ENV_PATH = ROOT / ".env"
 load_dotenv(ENV_PATH)
 
-LOG_DIR = ROOT / "logs"
-LOG_DIR.mkdir(parents=True, exist_ok=True)
-LOG_FILE = LOG_DIR / f"multisession_{datetime.now().strftime('%Y%m%d')}.log"
+
+def _resolve_log_dir() -> Path | None:
+    """로컬은 프로젝트 logs/, Streamlit Cloud 등은 /tmp 하위로 쓴다 (읽기 전용 FS 대비)."""
+    candidates = [
+        ROOT / "logs",
+        Path(tempfile.gettempdir()) / "multisession_rag_logs",
+    ]
+    for d in candidates:
+        try:
+            d.mkdir(parents=True, exist_ok=True)
+            return d
+        except OSError:
+            continue
+    return None
+
+
+def _build_log_handlers() -> list[logging.Handler]:
+    handlers: list[logging.Handler] = [logging.StreamHandler()]
+    log_dir = _resolve_log_dir()
+    if not log_dir:
+        return handlers
+    log_file = log_dir / f"multisession_{datetime.now().strftime('%Y%m%d')}.log"
+    try:
+        handlers.insert(0, logging.FileHandler(log_file, encoding="utf-8"))
+    except OSError:
+        pass
+    return handlers
+
 
 for _name in ("httpx", "httpcore", "urllib3", "openai", "langchain", "langchain_openai"):
     logging.getLogger(_name).setLevel(logging.WARNING)
@@ -39,10 +64,7 @@ for _name in ("httpx", "httpcore", "urllib3", "openai", "langchain", "langchain_
 logging.basicConfig(
     level=logging.WARNING,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[
-        logging.FileHandler(LOG_FILE, encoding="utf-8"),
-        logging.StreamHandler(),
-    ],
+    handlers=_build_log_handlers(),
 )
 log = logging.getLogger("multi_session_rag")
 
